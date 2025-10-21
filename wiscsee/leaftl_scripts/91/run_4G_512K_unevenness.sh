@@ -1,2 +1,0 @@
-export PATH=$PATH:$(pwd)/../pypy2.7-v7.3.9-linux64/bin
-pypy ../run_ftl -sl 0 -l 1000000000 -t /home/renjietian/LeaFTL/wiscsee/leaftl_scripts/leaftl_traces/91/unevenness_read91_4g.trace -c 8  -mc 512 -f learnedftl -wo 0 -q 1 -p 4096 -o /home/renjietian/LeaFTL/wiscsee/leaftl_scripts/raw_results/memory_batch/91/test_4G_512K >> /home/renjietian/LeaFTL/wiscsee/leaftl_scripts/raw_results/memory_batch/91/test_4G_512K_stdout_unevenness.txt -cf /home/renjietian/LeaFTL/wiscsee/leaftl_scripts/config/4G.json
