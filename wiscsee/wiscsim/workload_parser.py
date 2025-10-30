@@ -82,7 +82,6 @@ def parse_events(filename, page_size, recorder=True, start_lineno=0, lineno=floa
     if shift_range:
         offset_shift = random.randint(0, capacity)
         offset_shift = offset_shift // page_size * page_size
-    print("format:{}".format(format))
     with open(filename) as fp:
         t_start = None
         last_t = 0

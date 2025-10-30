@@ -120,6 +120,10 @@ class Ftl(ftlbuilder.FtlBuilder):
         if self.counter['mapping_table_read_miss'] + self.counter['mapping_table_read_hit'] > 0:
             log_msg("Mapping Table Read Miss Ratio: %.5f" % (self.counter['mapping_table_read_miss'] / float(self.counter['mapping_table_read_miss'] + self.counter['mapping_table_read_hit'])))
 
+        if self.counter['mapping_table_write_miss'] + self.counter['mapping_table_write_hit']+self.counter['mapping_table_read_miss'] + self.counter['mapping_table_read_hit']>0:
+            ratio = (self.counter['mapping_table_write_hit'] + self.counter['mapping_table_read_hit'])/(self.counter['mapping_table_write_miss'] + self.counter['mapping_table_write_hit']+self.counter['mapping_table_read_miss'] + self.counter['mapping_table_read_hit'])
+            log_msg("Mapping Table Hit Ration:%.5f" % (ratio))
+
         log_msg(self.counter)
         if sum(self.metadata.levels.values()) > 0:
             log_msg("Avg lookup", sum(self.metadata.levels.values()), sum(int(k)*int(v) for k, v in self.metadata.levels.items()) / float(sum(self.metadata.levels.values())))
@@ -943,8 +947,6 @@ class FlashMetadata(object):
 
         # allocate flash pages
         for i, lpn in enumerate(extents):
-            if lpn == 264599:
-                print("update_block")
             entry = (lpn, next_free_ppn + i)
             entries.append(entry)
 
@@ -961,7 +963,7 @@ class FlashMetadata(object):
             if not self.reference_mapping_table.get(lpn):
                 continue
 
-            # old_ppn, pages_to_write, pages_to_read = self.lpn_to_ppn(lpn)
+            old_ppn, pages_to_write, pages_to_read = self.lpn_to_ppn(lpn)
             old_ppn = self.reference_mapping_table.get(lpn)
             if old_ppn:
                 self.pvb.invalidate_page(old_ppn)
