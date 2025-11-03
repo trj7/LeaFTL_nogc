@@ -1,0 +1,2 @@
+export PATH=$PATH:$(pwd)/../pypy2.7-v7.3.9-linux64/bin
+pypy ../run_ftl -sl 0 -l 1000000000 -t ../leaftl_traces/82/write82_w_4g.trace_step_200.trace -c 8 -mc 512  -f learnedftl -wo 0 -q 1 -p 4096 -o ../raw_results/memory_batch/82/test_4G_512K >> ../raw_results/memory_batch/82/test_4G_512K_stdout_no_gc_write.txt -cf ../config/4G.json

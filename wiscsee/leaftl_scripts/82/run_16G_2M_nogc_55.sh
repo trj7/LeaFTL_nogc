@@ -1,0 +1,2 @@
+export PATH=$PATH:$(pwd)/../pypy2.7-v7.3.9-linux64/bin
+pypy ../run_ftl -sl 0 -l 1000000000 -t ../leaftl_traces/82/write82_rw55_16g.trace_step_200.trace -c 8 -mc 2048  -f learnedftl -wo 0 -q 1 -p 4096 -o ../raw_results/memory_batch/82/test_16G_2M >> ../raw_results/memory_batch/82/test_16G_2M_stdout_nogc_55.txt -cf ../config/16G.json

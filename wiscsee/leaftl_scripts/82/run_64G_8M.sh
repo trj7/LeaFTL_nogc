@@ -1,0 +1,2 @@
+export PATH=$PATH:$(pwd)/../pypy2.7-v7.3.9-linux64/bin
+pypy ../run_ftl -sl 0 -l 1000000000 -t ../leaftl_scripts/leaftl_traces/82/64g.trace -c 8 -mc 8192  -f learnedftl -wo 0 -q 1 -p 4096 -o ../leaftl_scripts/raw_results/memory_batch/82/test_64G_8M >> ../leaftl_scripts/raw_results/memory_batch/82/test_64G_8M_stdout.txt -cf ../config/64G.json
