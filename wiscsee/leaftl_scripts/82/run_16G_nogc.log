@@ -1,4 +1,0 @@
-nohup: ignoring input
-/home/user/trj/LeaFTL_nogc/wiscsee/leaftl_scripts/pypy2.7-v7.3.9-linux64/site-packages/bidict/compat.py:33: UserWarning: Python 2 support will be dropped in a future release.
-  warn('Python 2 support will be dropped in a future release.')
-Terminated

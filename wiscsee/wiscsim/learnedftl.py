@@ -18,7 +18,7 @@ import bitarray
 import bitarray.util
 from wiscsim.utils import *
 from wiscsim.sftl import SFTLPage, DFTLPage
-
+import time
 import config
 import ftlbuilder
 from datacache import *
@@ -332,10 +332,19 @@ class Ftl(ftlbuilder.FtlBuilder):
         self.recorder.add_to_general_accumulater('traffic', 'write', req_size)
         self.written_bytes += req_size
         self.rw_events += 1
-        
         if self.written_bytes > self.pre_written_bytes + self.display_interval:
             self.metadata.mapping_table.compact()
             self.metadata.mapping_table.promote()
+            log_msg("readingcount:{}".format(self.metadata.reading_count))
+            log_msg("flush count:{}".format(self.metadata.mapping_table.flush_count))
+            if self.metadata.mapping_table.flush_count_per != 0:
+                log_msg('avg flush time:%.6f' % (self.metadata.mapping_table.flush_time_per/self.metadata.mapping_table.flush_count_per))
+                self.metadata.mapping_table.flush_count_per = 0
+                self.metadata.mapping_table.flush_time_per = 0
+            if self.metadata.reading_count_per != 0:
+                log_msg('avg_reading_count:%.6f' % (self.metadata.reading_time_per/self.metadata.reading_count_per))
+                self.metadata.reading_count_per = 0
+                self.metadata.reading_time_per = 0
             self.display_msg("Write")
             self.pre_written_bytes = self.written_bytes
 
@@ -851,8 +860,9 @@ class FlashMetadata(object):
 
         # counters
         self.levels = defaultdict(int)
-
-
+        self.reading_count = 0
+        self.reading_count_per = 0
+        self.reading_time_per = 0
     ############# Flash read related ############
 
     def ppn_to_lpn(self, ppn, source_page=None):
@@ -861,6 +871,10 @@ class FlashMetadata(object):
     ############# Flash write related ############
 
     def lpn_to_ppn(self, lpn):
+        # log_msg("-------read------------")
+        start = time.time()
+        self.reading_count += 1
+        self.reading_count_per +=1
         real_ppn = None
         results, num_lookup, pages_to_write, pages_to_read = self.mapping_table.lookup(lpn, first=True)
         self.levels[num_lookup] += 1
@@ -899,19 +913,22 @@ class FlashMetadata(object):
                     else:
                         ppn = int(ppn / self.conf.n_pages_per_block + 1) * self.conf.n_pages_per_block
                     actual = self.oob.lpn_to_ppn(lpn, source_page=ppn)
-                    try:
-                        assert(actual)
-                    except:
+                    # try:
+                    #     assert(actual)
+                    # except:
                         # if this assert fails, it is possible that prediction is out of oob range, but still in the same block
-                        self.validation(lpn, None)
+                        # self.validation(lpn, None)
                     real_ppn = actual
-                    if actual == ppn:
+                    if actual == ppn or not actual:
                         pages_to_read += [ppn]
                     else:
                         pages_to_read += [ppn, actual]
 
             # self.validation(lpn, real_ppn)
+        end = time.time()
+        self.reading_time_per += (end-start)
         del results
+        # log_msg("-------readending------------")
         return real_ppn, pages_to_write, pages_to_read
 
 
@@ -1598,7 +1615,7 @@ class LogPLR():
 
     # now we only use compact
     def gc(self, blocknum):
-        return 
+        # return 
         for seg in self.block_map[blocknum]:
             for run in reversed(self.runs):
                 index = bisect_left(KeyWrapper(run, key=lambda _: _.x1), seg.x1)
@@ -1668,22 +1685,30 @@ class LogPLR():
     def compact_range(self, start, end):
         results = self.lookup_range(start, end)
         # relearn = dict()
+        # if start == 3605099:
+        #     for layer,segs in results.items():
+        #         log_msg("layer:%d"%layer)
+        #         for seg in segs:
+        #             log_msg(seg)
         for upper_layer, new_segs in results.items():
             for lower_layer, old_segs in results.items():
                 if upper_layer < lower_layer:
-                    for new_seg in new_segs:
-                        for old_seg in old_segs:
+                    for new_seg in new_segs[:]:
+                        for old_seg in old_segs[:]:
                             # if old_seg not in relearn and old_seg.x1 < new_seg.x1 and new_seg.x2 < old_seg.x2:
                             #     if not old_seg.consecutive:
                             #         relearn[old_seg] = sum(old_seg.filter) - 2
                             new_seg, updated_old_seg, same_level = Segment.merge(new_seg, old_seg)
                             if not updated_old_seg:
-                                self.runs[lower_layer].remove(old_seg)
-                                results[lower_layer].remove(old_seg)
-                            # if old_seg in self.runs[lower_layer]:
-                            #     self.runs[lower_layer].remove(old_seg)
-                            # if old_seg in results[lower_layer]:
-                            #     results[lower_layer].remove(old_seg)
+                                # if old_seg.x1 == 3605099:
+                                #     log_msg(self)
+                                #     log_msg(old_seg)
+                                # self.runs[lower_layer].remove(old_seg)
+                                # results[lower_layer].remove(old_seg)
+                                if old_seg in self.runs[lower_layer]:
+                                    self.runs[lower_layer].remove(old_seg)
+                                if old_seg in results[lower_layer]:
+                                    results[lower_layer].remove(old_seg)
         # return dict() #relearn
 
 
@@ -1705,6 +1730,7 @@ class FrameLogPLR:
         self.frame_length = frame_length
         self.frames = LRUCache()
         self.max_size = self.conf['mapping_cache_bytes']
+        self.flush_count = 0
         # assert(self.max_size >= self.conf.page_size)
 
         # internal_type = "sftl"
@@ -1727,6 +1753,8 @@ class FrameLogPLR:
         self.hits = 0
         self.misses = 0
         self.dirty = dict()
+        self.flush_time_per = 0
+        self.flush_count_per = 0
 
     def create_frame(self, frame_no):
         if self.type == "learnedftl":
@@ -1894,6 +1922,9 @@ class FrameLogPLR:
         return new_ppn, old_ppn
         
     def flush(self):
+        start = time.time()
+        self.flush_count += 1
+        self.flush_count_per +=1
         evicted_frames = []
         pages_to_read = []
         pages_to_write = []
@@ -1935,7 +1966,9 @@ class FrameLogPLR:
                 self.frame_on_flash[frame_no] = evict_frame
         # log_msg("%.2f miss ratio, %s evicted, %d memory, %d in cache, %d on flash" % (self.misses / float(self.misses + self.hits), evicted_frames, self.memory, len(self.frames), len(self.frame_on_flash)))
         # log_msg("%d miss, %d memory flushed, %s evicted, %d memory, %d in cache, %d on flash" % (self.misses, original_memory - self.memory, evicted_frames, self.memory, len(self.frames), len(self.frame_on_flash)))
-
+        end = time.time()    # 记录结束时间
+        # log_msg("运行时间：%.6f 秒" % (end-start))
+        self.flush_time_per += (end - start)
         return pages_to_write, list(set(pages_to_read))
 
     def change_size_of_frame(self, frame_no, new_mem):

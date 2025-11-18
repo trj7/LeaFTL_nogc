@@ -144,7 +144,7 @@ if __name__ == '__main__':
     parser.add_argument('-sl', '--start-line', dest="start_lineno", default=0, help="Start line number", type=int)
     parser.add_argument('-c', '--cache', dest="cache_size", default=0, help="Cache Size in MB", type=float)
     parser.add_argument('-mc', '--mapping-cache', dest="mapping_cache_bytes", default=128, help="Mapping table cache size in MB", type=float)
-    parser.add_argument('-g', '--gamma', dest="gamma", default=1e-4, help="Error bound of learnedftl", type=float)
+    parser.add_argument('-g', '--gamma', dest="gamma", default=4, help="Error bound of learnedftl", type=float)
     parser.add_argument('-d', '--dry', dest="dry_run", action='store_true', default=False, help="Perform dry-run")
     parser.add_argument('-o', '--output', dest="output", default='', help="Output directory")
     parser.add_argument('-wo', '--write-only', dest="write_only", default=0, help="Write events only")

@@ -166,10 +166,14 @@ class Controller(object):
         op can be 'read', 'write', and 'erase'
         """
         ret_requests = []
-        for page in range(page_start, page_start + page_count):
-            machine_page_addr = self.physical_to_machine_page(page)
-            flash_req = create_flashrequest(machine_page_addr, op = op)
-            ret_requests.append(flash_req)
+        try:
+            for page in range(page_start, page_start + page_count):
+                machine_page_addr = self.physical_to_machine_page(page)
+                flash_req = create_flashrequest(machine_page_addr, op = op)
+                ret_requests.append(flash_req)
+        except TypeError as e:
+            log_msg("Caught TypeError:", e)
+            log_msg("page_start:", page_start)
         return ret_requests
 
     def physical_to_machine_page(self, page_no):
